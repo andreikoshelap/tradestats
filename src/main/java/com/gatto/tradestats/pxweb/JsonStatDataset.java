@@ -199,4 +199,29 @@ public class JsonStatDataset {
         List<String> codesInOrder() { return codesInOrder; }
         String label(String code) { return labels.getOrDefault(code, code); }
     }
+
+    public String monthlySeriesAsJson() {
+        Map<String, Map<String, Double>> byMonth = new TreeMap<>(); // period -> flow -> value
+
+        for (Cell cell : flatten()) {
+            byMonth.computeIfAbsent(cell.time(), k -> new HashMap<>())
+                    .put(cell.flow(), cell.value());
+        }
+
+        ArrayNode array = MAPPER.createArrayNode();
+        byMonth.forEach((period, flows) -> {
+            ObjectNode row = array.addObject();
+            row.put("period", period);
+            row.put("exportMillionEur", round(flows.getOrDefault("EXP", Double.NaN) / 1_000_000));
+            row.put("importMillionEur", round(flows.getOrDefault("IMP", Double.NaN) / 1_000_000));
+            row.put("balanceMillionEur", round(flows.getOrDefault("BAL", Double.NaN) / 1_000_000));
+        });
+
+        ObjectNode root = MAPPER.createObjectNode();
+        root.put("tableTitle", "Eesti kaubavahetus kuude kaupa");
+        root.set("months", array);
+        return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+    }
+
+
 }

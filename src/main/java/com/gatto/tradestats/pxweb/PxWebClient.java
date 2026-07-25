@@ -30,4 +30,25 @@ public class PxWebClient {
                 .retrieve()
                 .body(String.class);
     }
+
+    public String fetchMonthlyTotals(int monthsBack) {
+        String body = """
+        {
+          "query": [
+            { "code": "ContentsCode", "selection": { "filter": "item", "values": ["TRD_VAL"] } },
+            { "code": "FLOW", "selection": { "filter": "item", "values": ["EXP","IMP","BAL"] } },
+            { "code": "PART_COUNTRY", "selection": { "filter": "item", "values": ["TOTAL"] } },
+            { "code": "TIME", "selection": { "filter": "top", "values": ["%d"] } }
+          ],
+          "response": { "format": "json-stat2" }
+        }
+        """.formatted(monthsBack);
+
+        return restClient.post()
+                .uri(TABLE_URL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(String.class);
+    }
 }

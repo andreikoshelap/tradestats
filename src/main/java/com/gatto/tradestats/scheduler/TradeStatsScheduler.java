@@ -11,7 +11,7 @@ public class TradeStatsScheduler {
 
     private final TradeStatsImportService importService;
 
-    @Scheduled(cron = "0 0 9 11 * *", zone = "Europe/Tallinn")
+    @Scheduled(cron = "0 0 9 25 * *", zone = "Europe/Tallinn")
     public void importMonthly() {
         importService.importLatestMonth();
     }

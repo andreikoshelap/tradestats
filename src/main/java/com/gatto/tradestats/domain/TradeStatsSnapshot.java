@@ -19,6 +19,7 @@ public class TradeStatsSnapshot {
 
     @Lob private String rawJson;
     @Lob private String top10PartnersJson; // уже отсортированный топ-10
+    @Lob private String monthlySeriesJson;
 
     private Instant fetchedAt;
 

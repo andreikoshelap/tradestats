@@ -25,10 +25,11 @@ public class TradeStatsXlsxExporter {
             "Riik", "Väärtus (mln €)", "Osatähtsus (%)", "Muutus aastaga (%)"
     };
 
-    public byte[] toXlsx(String top10PartnersJson) {
+    public byte[] toXlsx(String top10PartnersJson, String monthlySeriesJson) {
         try {
             JsonNode root = MAPPER.readTree(top10PartnersJson);
             String period = root.get("period").asString();
+            JsonNode monthlyRoot = monthlySeriesJson == null ? null : MAPPER.readTree(monthlySeriesJson);
 
             try (XSSFWorkbook workbook = new XSSFWorkbook()) {
                 CellStyle titleStyle = titleStyle(workbook);
@@ -39,6 +40,9 @@ public class TradeStatsXlsxExporter {
                         titleStyle, headerStyle, numberStyle);
                 buildSheet(workbook, "Import", root.get("importTop10"), period,
                         titleStyle, headerStyle, numberStyle);
+                if (monthlyRoot != null) {
+                    buildMonthlySheet(workbook, monthlyRoot, titleStyle, headerStyle, numberStyle);
+                }
 
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 workbook.write(out);
@@ -120,5 +124,33 @@ public class TradeStatsXlsxExporter {
         CellStyle style = workbook.createCellStyle();
         style.setDataFormat(workbook.createDataFormat().getFormat(format));
         return style;
+    }
+
+    private void buildMonthlySheet(XSSFWorkbook workbook, JsonNode monthlyRoot,
+                                   CellStyle titleStyle, CellStyle headerStyle, CellStyle numberStyle) {
+        Sheet sheet = workbook.createSheet("Kaubavahetus kuude kaupa");
+
+        Row titleRow = sheet.createRow(0);
+        titleRow.createCell(0).setCellValue("Eesti kaubavahetus kuude kaupa");
+        titleRow.getCell(0).setCellStyle(titleStyle);
+
+        String[] headers = {"Kuu", "Eksport (mln €)", "Import (mln €)", "Bilanss (mln €)"};
+        Row headerRow = sheet.createRow(2);
+        for (int i = 0; i < headers.length; i++) {
+            Cell c = headerRow.createCell(i);
+            c.setCellValue(headers[i]);
+            c.setCellStyle(headerStyle);
+        }
+
+        int rowIndex = 3;
+        for (JsonNode row : monthlyRoot.get("months")) {
+            Row dataRow = sheet.createRow(rowIndex++);
+            dataRow.createCell(0).setCellValue(row.get("period").asString());
+            setNumericOrBlank(dataRow.createCell(1), row.get("exportMillionEur"), numberStyle);
+            setNumericOrBlank(dataRow.createCell(2), row.get("importMillionEur"), numberStyle);
+            setNumericOrBlank(dataRow.createCell(3), row.get("balanceMillionEur"), numberStyle);
+        }
+
+        for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
     }
 }
