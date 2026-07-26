@@ -148,7 +148,7 @@ public class JsonStatDataset {
                 }
             }
 
-            if (contentsCode != null && flow != null && country != null) {
+            if (flow != null && country != null && time != null) {
                 result.add(new Cell(contentsCode, flow, country, time, val));
             }
         }
@@ -210,17 +210,28 @@ public class JsonStatDataset {
 
         ArrayNode array = MAPPER.createArrayNode();
         byMonth.forEach((period, flows) -> {
+            double exportMillionEur = millionEur(flows.get("EXP"));
+            double importMillionEur = millionEur(flows.get("IMP"));
+            double balanceMillionEur = millionEur(flows.get("BAL"));
+            if (Double.isNaN(balanceMillionEur) && !Double.isNaN(exportMillionEur) && !Double.isNaN(importMillionEur)) {
+                balanceMillionEur = round(exportMillionEur - importMillionEur);
+            }
+
             ObjectNode row = array.addObject();
             row.put("period", period);
-            row.put("exportMillionEur", round(flows.getOrDefault("EXP", Double.NaN) / 1_000_000));
-            row.put("importMillionEur", round(flows.getOrDefault("IMP", Double.NaN) / 1_000_000));
-            row.put("balanceMillionEur", round(flows.getOrDefault("BAL", Double.NaN) / 1_000_000));
+            row.put("exportMillionEur", exportMillionEur);
+            row.put("importMillionEur", importMillionEur);
+            row.put("balanceMillionEur", balanceMillionEur);
         });
 
         ObjectNode root = MAPPER.createObjectNode();
         root.put("tableTitle", "Eesti kaubavahetus kuude kaupa");
         root.set("months", array);
         return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+    }
+
+    private double millionEur(Double value) {
+        return value == null ? Double.NaN : round(value / 1_000_000);
     }
 
 
